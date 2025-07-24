@@ -21,15 +21,15 @@ def arrange_contestant_data(contestants_filename, seating_filename):
         csv_reader = csv.reader(csv_file, delimiter=",")
         next(csv_reader, None)
         contestant_data = list(csv_reader)
-    
+
     contestant_lookup = {}
     for contestant_row in contestant_data:
         contestant_lookup[contestant_row[4]] = contestant_row
-    
+
     with open(seating_filename) as csv_file:
         csv_reader = csv.reader(csv_file, delimiter=",")
         seating_data = list(csv_reader)
-    
+
     site_map = {}
     for i in range(len(seating_data)):
         for j in range(len(seating_data[i])):
@@ -37,7 +37,7 @@ def arrange_contestant_data(contestants_filename, seating_filename):
             user_id = seating_data[i][j]
             if user_id:
                 site_map[seatcode] = { 'user': user_id, 'ip': contestant_lookup[user_id][6] }
-    
+
     return site_map
 
 
@@ -79,7 +79,8 @@ def get_hosts_status(ip_to_hostname, hostname_to_status):
         ip = ip.strip()
         hostname = ip_to_hostname[ip]
 
-        if status != "-" or hostname_to_status[hostname]:
+        prev = hostname_to_status.get(hostname)
+        if status != "-" or prev:
             ip_to_status[ip] = status
 
     result = [[hostname, ip_to_status[ip]] for ip, hostname in ip_to_hostname.items()]
@@ -89,19 +90,23 @@ def get_hosts_status(ip_to_hostname, hostname_to_status):
 if __name__ == "__main__":
     with open(JSON_CONTESTANT_SITE, "w") as json_file:
         json.dump(arrange_contestant_data(CONTESTANT_DATA, SEATING_LAYOUT), json_file)
-
+    print("starting to read contestants info", flush=True)
     ip_to_hostname = read_contestant_data(CONTESTANT_DATA)
 
     while True:
+        print(f"[{time.strftime('%H:%M:%S')}] reading: {JSON_STATUS}", flush=True)
         hostname_to_status = read_status(JSON_STATUS)
 
+        print(f"[{time.strftime('%H:%M:%S')}] pinging hosts", flush=True)
         results = get_hosts_status(ip_to_hostname, hostname_to_status)
         status = {
             "time": time.time(),
             "results": results,
         }
 
+        print(f"[{time.strftime('%H:%M:%S')}] writing statuses: {JSON_STATUS}", flush=True)
         with open(JSON_STATUS, "w") as json_file:
             json.dump(status, json_file)
+            print(f"[{time.strftime('%H:%M:%S')}] OK", flush=True)
 
         time.sleep(INTERVAL_IN_SECOND)
