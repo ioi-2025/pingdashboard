@@ -1,178 +1,366 @@
-<html>
-
+<!DOCTYPE html>
+<html lang="en">
 <head>
-  <title>IOI 2025 Contestant Laptop Status</title>
-
+  <meta charset="UTF-8">
+  <title>Booth Map with Info Panel</title>
   <style>
+    * {
+      box-sizing: border-box;
+    }
+
     body {
-      max-width: 1600px;
-      margin: auto;
-      padding: 10px;
+      margin: 0;
+      font-family: sans-serif;
+      display: flex;
+      flex-direction: column;
     }
 
-    table.seats {
-      display: inline-block;
-      margin-right: 10px;
-    }
-
-    table.seats td {
-      font-family: Arial, Helvetica, sans-serif;
-      height: 30px;
-      width: 55px;
-      border: 1px solid black;
+    h2 {
       text-align: center;
     }
 
-    td.placeholder {
-      border: 1px solid white !important;
-      min-width: 40px;
+    .container {
+      display: flex;
+      flex-wrap: nowrap;
+      justify-content: center;
+      width: 100%;
+      align-items: flex-start;
     }
 
-    td.legend {
-      height: 25px;
-      width: 95px;
-      border: 1px solid black;
-      text-align: center;
+    #map-wrapper {
+        position: relative;
+        width: 90vw; /* Responsive width */
+        max-width: 1020px;
+        margin: 0 auto;
+        aspect-ratio: 2040 / 1774; /* Maintain original image ratio */
+        background-image: url('mapImage2.png');
+        background-size: cover;
+        background-position: center;
+        background-repeat: no-repeat;
+        border: 1px solid #333;
     }
 
-    td.alive {
-      background-color: limegreen;
+    .booth {
+        position: absolute;
+        width: 1.95%;  /* ~35px of 2040px */
+        height: 1.4%; /* ~25px of 1774px */
+        border-radius: 4px;
+        border: 1px solid #000;
+        background-color: rgba(0, 255, 0, 0.4); /* Default green */
+        transition: background-color 0.3s ease;
+        cursor: pointer;
+    }
+    .boothred {
+        position: absolute;
+        width: 1.95%;  /* ~35px of 2040px */
+        height: 1.4%; /* ~25px of 1774px */
+        border-radius: 4px;
+        border: 1px solid #000;
+        background-color: rgb(255, 0, 0); /* Default green */
+        transition: background-color 0.3s ease;
+        cursor: pointer;
     }
 
-    td.dead {
-      color: white;
-      background-color: red;
+    #details-panel {
+      flex: 0 0 300px;
+      padding: 1rem;
+      border-left: 1px solid #ccc;
+      background-color: #f9f9f9;
+      display: none;
     }
 
-    span.ip {
-      font-size: small;
+    #details-panel.active {
+      display: block;
     }
-
+    #status-panel {
+      max-height: 80vh;
+      overflow-y: auto;
+      padding: 1rem;
+      border-right: 1px solid #ccc;
+      background-color: #f2f2f2;
+      flex: 0 0 250px;
+    }
+    #status-panel h3 {
+      position: absolute;
+      top: 0;
+      background-color: #f2f2f2;
+      padding: 0.5rem 0;
+      margin: 0;
+      z-index: 1;
+    }
+    
   </style>
-
-  <script src="https://code.jquery.com/jquery-2.1.4.min.js"></script>
-  <script type="text/javascript">
-    const rows = 20;
-    const columns = 20;
-
-    function generateTable(sectionObj) {
-      let table = $('<table>', { 'class': 'seats' });
-      sectionObj.append(table);
-
-      let header = $('<tr>');
-      table.append(header);
-      header.append($('<th>'));
-      for (let j = 1; j <= columns / 2; j++) {
-        header.append($('<th>').text(j));
-      }
-      header.append($('<th>'));
-      for (let j = columns / 2 + 1; j <= columns; j++) {
-        header.append($('<th>').text(j));
-      }
-      header.append($('<th>'));
-
-      for (let i = 1; i <= rows; i++) {
-        const rowId = String.fromCharCode(64 + i);
-        let row = $('<tr>', {'id': rowId});
-        table.append(row);
-        row.append($('<td>', {'class': 'placeholder'}).text(rowId));
-        for (let j = 1; j <= columns / 2; j++) {
-          row.append($('<td>', {'id': rowId + j}));
-        }
-        row.append($('<td>', {'class': 'placeholder'}).text(rowId));
-          for (let j = columns / 2 + 1; j <= columns; j++) {
-          row.append($('<td>', {'id': rowId + j}));
-        }
-        row.append($('<td>', {'class': 'placeholder'}).text(rowId));
-      }
-    }
-
-    function fetchStatus() {
-      $.get('site.json', function (site) {
-        let seatLookup = {};
-        for (let i = 1; i <= rows; i++) {
-          const rowId = String.fromCharCode(64 + i);
-          for (let j = 1; j <= columns; j++) {
-            const seatId = rowId + j;
-            let seat = $('#' + seatId);
-            seat.text("");
-            if (site[seatId]) {
-              seat.html(site[seatId].user + '<br><span class="ip">' + site[seatId].ip + '</span>');
-              seatLookup[site[seatId].user] = seatId;
-            }
-          }
-        }
-        
-        $.get('status.json', function (status) {
-          $('#time').text(new Date(status.time * 1000));
-
-          function setCellStatus(cell, status) {
-            cell.removeClass('alive');
-            cell.removeClass('dead');
-
-            if (status) {
-              if (status == '-') {
-                cell.addClass('dead');
-              } else {
-                cell.addClass('alive');
-                cell.attr('title', 'ping: ' + status + ' ms');
-              }
-            }
-          }
-
-          for (var i = 0; i < status.results.length; i++) {
-            var result = status.results[i];
-            var cell = $('#' + seatLookup[result[0]]);
-            if (cell) {
-              setCellStatus(cell, result[1]);
-            }
-          }
-
-          setTimeout(fetchStatus, 5000);
-        });
-      });
-      
-    }
-
-    $(document).ready(function () {
-      generateTable($('div#status-container'));
-      // update data
-      fetchStatus();
-    });
-  </script>
 </head>
-
 <body>
-  <h1 style="text-align: center;">IOI 2025 Contestant Laptop Status</h1>
 
-  <br />
+<h2>Interactive Booth Map</h2>
 
-  <p><small>Last updated: <span id="time"></span></small></p>
 
-  <div id="status-container" style="margin: 0px; padding: 0px;">
+<div class="container">
   
+  <div id="status-panel">
+    <h3> Unavailable Contestants</h3>
+    <ul id="status-list"></ul>
+  </div>
+  <div id="map-wrapper">
+    <!-- Booths will be inserted here by JavaScript -->
   </div>
 
-  <br />
-  <br />
-  <br />
+  <div id="details-panel">
+    <h3>Contestant Info</h3>
+    <p id="booth-details">Click a Contestant to see details.</p>
+  </div>
+</div>
 
-  <small>Legend</small>
-  <table>
-    <tbody>
-      <tr>
-        <td class="legend alive"><small>Connected</small></td>
-        <td><small>(hover to see ping speed)</small></td>
-      </tr>
-      <tr>
-        <td class="legend dead"><small>Disconnected</small></td>
-      </tr>
-      <tr>
-        <td class="legend"><small>Never connected</small></td>
-      </tr>
-    </tbody>
-  </table>
+<script>
+  const REFRESH_INTERVAL = 3000; // in milliseconds (10 sec)
+
+  function generateY(topLefty) {
+    const spaceBetweenRows = 4.3;
+    const spaceBetweenhall = 6.08;
+    let ypoints = [];
+    let cy = topLefty;
+    for (let i = 0; i < 20; i++) {
+      ypoints.push(cy);
+      cy += (i + 1) % 4 === 0 ? spaceBetweenhall : spaceBetweenRows;
+    }
+    return ypoints;
+  }
+
+  function generateX(topLefty, topLeftx) {
+    const spaceBetweenColums = 2.31;
+    const spaceBetweenBighall = 6.37;
+    let xpoints = [];
+    let cx = topLeftx;
+    for (let i = 0; i < 20; i++) {
+      xpoints.push([topLefty, cx]);
+      cx += (i + 1) % 10 === 0 ? spaceBetweenBighall : spaceBetweenColums;
+    }
+    return xpoints;
+  }
+
+  const topLeftx = 37.17 - 3 * 2.31;
+  const topLefty = 4.98;
+  const ypoints = generateY(topLefty);
+  const xypoints = ypoints.map(y => generateX(y, topLeftx));
+
+  async function loadBooths() {
+    console.log("here")
+    const [siteData, statusData] = await Promise.all([
+      fetch("site.json").then(res => res.json()),
+      fetch("status.json").then(res => res.json())
+    ]);
+    //console.log(statusData)
+    const userStatusMap = Object.fromEntries(statusData.results);
+    //console.log("userstatusmap", userStatusMap)
+    const boothData = [];
+
+    for (const [seat, info] of Object.entries(siteData)) {
+      const row = seat[0];
+      const col = parseInt(seat.slice(1));
+      const rowIndex = row.charCodeAt(0) - 'A'.charCodeAt(0);
+      const colIndex = col - 1;
+      const pos = xypoints[rowIndex]?.[colIndex];
+      if (!pos) continue;
+
+      const status = userStatusMap[info.user] === "-" ? "-":".";
+      boothData.push({
+        code: info.user,
+        ip: info.ip,
+        status: status,
+        top: pos[0] + "%",
+        left: pos[1] + "%"
+      });
+    }
+
+    // Clear existing booths and status list
+    const mapWrapper = document.getElementById("map-wrapper");
+    mapWrapper.innerHTML = "";
+    const statusList = document.getElementById("status-list");
+    statusList.innerHTML = "";
+
+    boothData.forEach(({ code, status }, index) => {
+      if (status === "-") {
+        const li = document.createElement("li");
+        li.textContent = `Offline: ${code}`;
+        li.addEventListener("click", () => {
+          const booths = document.querySelectorAll(".boothred");
+          const target = booths[index];
+          if (target) target.scrollIntoView({ behavior: "smooth", block: "center" });
+        });
+        statusList.appendChild(li);
+      }
+    });
+
+    boothData.forEach(({ code, status, ip, top, left }) => {
+      console.log(status)
+      const booth = document.createElement("div");
+      booth.className = status === "." ? "booth" : "boothred";
+      booth.dataset.code = code;
+      booth.dataset.ip = ip;
+      booth.style.top = top;
+      booth.style.left = left;
+
+      booth.addEventListener("click", () => {
+        const panel = document.getElementById("details-panel");
+        const detailsText = document.getElementById("booth-details");
+        panel.classList.add("active");
+        detailsText.textContent = `User: ${code}\nIP: ${ip}`;
+      });
+
+      mapWrapper.appendChild(booth);
+    });
+  }
+
+  window.onload = () => {
+    loadBooths(); // Initial load
+    setInterval(loadBooths, REFRESH_INTERVAL); // Refresh every X seconds
+  };
+</script>
+
+<!-- <script>
+  function generateY(topLefty) {
+    //generate y-axis percentage
+    const spaceBetweenRows = 4.3
+    const spaceBetweenhall = 6.08
+    let ypoints = []
+    let cy = topLefty
+    for (let i = 0; i < 20; i++) {
+      ypoints.push(cy)
+      if( (i + 1) % 4 == 0 )
+        cy+=spaceBetweenhall
+      else 
+        cy+=spaceBetweenRows
+    }
+    return ypoints
+  }
+  function generateX(topLefty, topLeftx) {
+    const spaceBetweenColums = 2.31
+    const spaceBetweenBighall = 6.37
+    let x = topLeftx + 9*spaceBetweenColums + 6.37 + 9*spaceBetweenColums
+    let xpoints = []
+    let cx = topLeftx
+    for (let i = 0; i < 20; i++) {
+      xpoints.push([topLefty, cx])
+      if ((i + 1) % 10 == 0) 
+        cx+=spaceBetweenBighall
+      else
+        cx+=spaceBetweenColums
+    }
+    return xpoints
+  }
+  //generate y points as pivot
+  let topLeftx = 37.17 - 3*2.31
+  let topLefty = 4.98
+  let ypoints = generateY(topLefty)
+  let xypoints = [] 
+  //generate xy with y pivots
+  for (const y of ypoints) {
+    let xpoints = generateX(y, topLeftx)
+    console.log(xpoints)
+    xypoints.push(xpoints)
+  }
+
+  const siteData = {
+    "A1": { "user": "TESTHUN1", "ip": "10.10.0.101" },
+    "A2": { "user": "TESTIOI2", "ip": "10.10.0.104" },
+    "B1": { "user": "TESTIOI1", "ip": "10.10.0.103" },
+    "B3": { "user": "TESTHUN2", "ip": "10.10.0.102" }
+  };
+
+  const statusData = {
+    "time": 1753410198.2575092,
+    "results": [
+      ["TESTHUN1", "."],
+      ["TESTHUN2", "-"],
+      ["TESTIOI1", "."],
+      ["TESTIOI2", "."]
+    ]
+  };
+  const userStatusMap = Object.fromEntries(statusData.results);
+  const boothData = []
+  for (const [seat, info] of Object.entries(siteData)) {
+    const row = seat[0]; // A, B, etc.
+    const col = parseInt(seat.slice(1)); // 1, 2, 3...
+    const rowIndex = row.charCodeAt(0) - 'A'.charCodeAt(0); // 0-based row
+    const colIndex = col - 1; // 0-based column
+
+    const pos = xypoints[rowIndex]?.[colIndex];
+    if (!pos) continue; // skip if out of bounds
+
+    const status = userStatusMap[info.user] || ".";
+    boothData.push({
+      code: info.user,
+      ip: info.ip,
+      status: status,
+      top: pos[0] + "%",
+      left: pos[1] + "%"
+    });
+  }
+  // for (let parr of xypoints) {
+  //   console.log(parr)
+  //   for (let p of parr) {
+  //     const pobj = {code: "Test", status:  Math.random() < 0.1 ? "-" : ".", top: p[0]+"%", left: p[1]+"%"}
+  //     boothData.push(pobj)
+  //   }
+    
+  // }
+  
+
+  const mapWrapper = document.getElementById("map-wrapper");
+
+  //left list
+  const statusList = document.getElementById("status-list");
+
+  boothData.forEach(({ code, status }, index) => {
+    if (status === "-") {
+      const li = document.createElement("li");
+      li.textContent = `Contestant ${code}`;
+      li.addEventListener("click", () => {
+        const booths = document.querySelectorAll(".boothred");
+        const target = booths[index];
+        if (target) target.scrollIntoView({ behavior: "smooth", block: "center" });
+      });
+      statusList.appendChild(li);
+    }
+  });
+  //end left list
+
+  boothData.forEach(({ code, status, top, left }) => {
+    const booth = document.createElement("div");
+    if (status == ".")
+      booth.className = "booth";
+    else
+      booth.className = "boothred";  
+    booth.dataset.code = code;
+    booth.style.top = top;
+    booth.style.left = left;
+
+    booth.addEventListener("click", () => {
+      const panel = document.getElementById("details-panel");
+      const detailsText = document.getElementById("booth-details");
+      panel.classList.add("active");
+      detailsText.textContent = `Details for contestant: ${code}`;
+    });
+
+    mapWrapper.appendChild(booth);
+  });
+</script> -->
+
+
+<script>
+  const booths = document.querySelectorAll('.booth');
+  const panel = document.getElementById('details-panel');
+  const detailsText = document.getElementById('booth-details');
+
+  booths.forEach(booth => {
+    booth.addEventListener('click', () => {
+      const code = booth.dataset.code;
+      panel.classList.add('active');
+      detailsText.textContent = `Details for contestant: ${code}`;
+    });
+  });
+</script>
 
 </body>
-
 </html>
