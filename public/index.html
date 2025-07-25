@@ -94,7 +94,9 @@
 <body>
 
 <h2>Interactive Booth Map</h2>
-
+<p style="text-align:center; margin-bottom:1rem;">
+  <small><b>Last updated: </b><span id="last-updated"></span></small>
+</p>
 
 <div class="container">
   
@@ -113,7 +115,7 @@
 </div>
 
 <script>
-  const REFRESH_INTERVAL = 3000; // in milliseconds (10 sec)
+  const REFRESH_INTERVAL = 10000; // in milliseconds (10 sec)
 
   function generateY(topLefty) {
     const spaceBetweenRows = 4.3;
@@ -150,6 +152,9 @@
       fetch("site.json").then(res => res.json()),
       fetch("status.json").then(res => res.json())
     ]);
+    const lastUpdatedEl = document.getElementById('last-updated');
+    const date = new Date(statusData.time * 1000);
+    lastUpdatedEl.textContent = date.toLocaleString();
     //console.log(statusData)
     const userStatusMap = Object.fromEntries(statusData.results);
     //console.log("userstatusmap", userStatusMap)
